@@ -115,7 +115,7 @@ iptv_libav_thread(void *aux)
 
   for (i = 0; i < la->ictx->nb_streams; i++) {
     in_stream = la->ictx->streams[i];
-    out_stream = avformat_new_stream(la->octx, in_stream->codec->codec);
+    out_stream = avformat_new_stream(la->octx, in_stream->codecpar->codec);
     if (out_stream == NULL) {
       tvherror(LS_IPTV, "libav: Failed allocating output stream");
       goto fail;
