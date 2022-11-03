@@ -35,8 +35,8 @@
 typedef struct lav_muxer {
   muxer_t;
   AVFormatContext *lm_oc;
-  AVBitStreamFilterContext *lm_h264_filter;
-  AVBitStreamFilterContext *lm_hevc_filter;
+  AVBSFContext *lm_h264_filter;
+  AVBSFContext *lm_hevc_filter;
   int lm_fd;
   int lm_init;
 } lav_muxer_t;
