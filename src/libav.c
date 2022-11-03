@@ -223,7 +223,7 @@ libav_is_encoder(AVCodec *codec)
 #if LIBAVCODEC_VERSION_INT >= ((54<<16)+(7<<8)+0)
   return av_codec_is_encoder(codec);
 #else
-  return codecpar->encode || codecpar->encode2;
+  return codec->encode || codec->encode2;
 #endif
 }
 
