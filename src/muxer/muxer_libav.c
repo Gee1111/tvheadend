@@ -475,7 +475,7 @@ lav_muxer_write_pkt(muxer_t *m, streaming_message_type_t smt, void *data)
       lm->lm_h264_filter : lm->lm_hevc_filter;
       pkt = avc_convert_pkt(opkt = pkt);
       pkt_ref_dec(opkt);
-            if(av_bsf_send_packet(filter, pkt->pkt_payload) < 0 ||
+            if(av_bsf_send_packet(filter, pktbuf_t) < 0 ||
          av_bsf_receive_packet(filter, &packet) < 0) {
 	tvhwarn(LS_LIBAV,  "Failed to filter bitstream");
 	if (packet.data != pktbuf_ptr(pkt->pkt_payload))
