@@ -31,6 +31,7 @@
 #include "parsers/parsers.h"
 #include "parsers/parser_avc.h"
 #include "parsers/parser_hevc.h"
+#include <avcodec.h>
 
 typedef struct lav_muxer {
   muxer_t;
