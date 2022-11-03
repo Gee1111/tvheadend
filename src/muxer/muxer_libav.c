@@ -475,8 +475,15 @@ lav_muxer_write_pkt(muxer_t *m, streaming_message_type_t smt, void *data)
       lm->lm_h264_filter : lm->lm_hevc_filter;
       pkt = avc_convert_pkt(opkt = pkt);
       pkt_ref_dec(opkt);
-            if(av_bsf_send_packet(filter, pkt->pkt_payload) < 0 ||
-         av_bsf_receive_packet(filter, &packet) < 0) {
+            if(av_bitstream_filter_filter(st->codecpar->codec_id == AV_CODEC_ID_H264 ?
+                                      lm->lm_h264_filter : lm->lm_hevc_filter,
+				    st->codecpar, 
+				    NULL, 
+				    &packet.data, 
+				    &packet.size, 
+				    pktbuf_ptr(pkt->pkt_payload), 
+				    pktbuf_len(pkt->pkt_payload), 
+				    SCT_ISVIDEO(pkt->pkt_type) ? pkt->v.pkt_frametype < PKT_P_FRAME : 1) < 0) {
 	tvhwarn(LS_LIBAV,  "Failed to filter bitstream");
 	if (packet.data != pktbuf_ptr(pkt->pkt_payload))
 	  av_free(packet.data);
