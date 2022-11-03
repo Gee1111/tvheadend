@@ -88,7 +88,7 @@ lav_muxer_add_stream(lav_muxer_t *lm,
     return -1;
 
   st->id = ssc->es_index;
-  c = st->codec;
+  c = avcodec_alloc_context3(NULL); /* Check */
   c->codec_id = streaming_component_type2codec_id(ssc->es_type);
 
   switch(lm->m_config.m_type) {
@@ -308,8 +308,8 @@ lav_muxer_init(muxer_t* m, struct streaming_start *ss, const char *name)
   av_dict_set(&oc->metadata, "service_provider", app, 0);
 
   if(lm->m_config.m_type == MC_MPEGTS) {
-    lm->lm_h264_filter = av_bitstream_filter_init("h264_mp4toannexb");
-    lm->lm_hevc_filter = av_bitstream_filter_init("hevc_mp4toannexb");
+    av_bsf_alloc(av_bsf_get_by_name("h264_mp4toannexb"), &lm->lm_h264_filter); /* Check */
+    av_bsf_alloc(av_bsf_get_by_name("hevc_mp4toannexb"), &lm->lm_hevc_filter); /* Check */
   }
 
   oc->max_delay = 0.7 * AV_TIME_BASE;
@@ -406,7 +406,7 @@ lav_muxer_open_file(muxer_t *m, const char *filename)
 
   lm->lm_fd = -1;
   oc = lm->lm_oc;
-  snprintf(oc->filename, sizeof(oc->filename), "%s", filename);
+  oc->url = av_strdup(filename); /* Check */
 
   if((r = avio_open(&oc->pb, filename, AVIO_FLAG_WRITE)) < 0) {
     av_strerror(r, buf, sizeof(buf));
