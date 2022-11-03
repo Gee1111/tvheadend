@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <libavformat/avformat.h>
 #include <libavutil/mathematics.h>
+#include <libavcodec/avcodec.h>
+#include <libavcodec/bsf.h>
 
 #include "tvheadend.h"
 #include "streaming.h"
@@ -31,7 +33,6 @@
 #include "parsers/parsers.h"
 #include "parsers/parser_avc.h"
 #include "parsers/parser_hevc.h"
-#include <avcodec.h>
 
 typedef struct lav_muxer {
   muxer_t;
@@ -430,6 +431,7 @@ static int
 lav_muxer_write_pkt(muxer_t *m, streaming_message_type_t smt, void *data)
 {
   int i;
+  AVBSFContext *filter;
   AVFormatContext *oc;
   AVStream *st;
   AVPacket packet;
@@ -465,21 +467,16 @@ lav_muxer_write_pkt(muxer_t *m, streaming_message_type_t smt, void *data)
 
     tofree = NULL;
     av_init_packet(&packet);
-    codec_id = st->codec->codec_id;
+    codec_id = st->codecpar->codec_id;
 
     if((lm->lm_h264_filter && codec_id == AV_CODEC_ID_H264) ||
        (lm->lm_hevc_filter && codec_id == AV_CODEC_ID_HEVC)) {
+      filter = st->codecpar->codec_id == AV_CODEC_ID_H264 ?
+      lm->lm_h264_filter : lm->lm_hevc_filter;
       pkt = avc_convert_pkt(opkt = pkt);
       pkt_ref_dec(opkt);
-      if(av_bitstream_filter_filter(st->codec->codec_id == AV_CODEC_ID_H264 ?
-                                      lm->lm_h264_filter : lm->lm_hevc_filter,
-				    st->codec, 
-				    NULL, 
-				    &packet.data, 
-				    &packet.size, 
-				    pktbuf_ptr(pkt->pkt_payload), 
-				    pktbuf_len(pkt->pkt_payload), 
-				    SCT_ISVIDEO(pkt->pkt_type) ? pkt->v.pkt_frametype < PKT_P_FRAME : 1) < 0) {
+            if(av_bsf_send_packet(filter, pkt->pkt_payload) < 0 ||
+         av_bsf_receive_packet(filter, &packet) < 0) {
 	tvhwarn(LS_LIBAV,  "Failed to filter bitstream");
 	if (packet.data != pktbuf_ptr(pkt->pkt_payload))
 	  av_free(packet.data);
@@ -595,14 +592,14 @@ lav_muxer_destroy(muxer_t *m)
   lav_muxer_t *lm = (lav_muxer_t*)m;
 
   if(lm->lm_h264_filter)
-    av_bitstream_filter_close(lm->lm_h264_filter);
+    av_bsf_free(&lm->lm_h264_filter);
 
   if(lm->lm_hevc_filter)
-    av_bitstream_filter_close(lm->lm_hevc_filter);
+    av_bsf_free(&lm->lm_hevc_filter);
 
   if (lm->lm_oc) {
     for(i=0; i<lm->lm_oc->nb_streams; i++)
-      av_freep(&lm->lm_oc->streams[i]->codec->extradata);
+      av_freep(&lm->lm_oc->streams[i]->codecpar->extradata);
   }
 
   if(lm->lm_oc) {
@@ -625,7 +622,7 @@ lav_muxer_create(const muxer_config_t *m_cfg,
 {
   const char *mux_name;
   lav_muxer_t *lm;
-  AVOutputFormat *fmt;
+  const AVOutputFormat *fmt;
 
   switch(m_cfg->m_type) {
   case MC_MPEGPS:
