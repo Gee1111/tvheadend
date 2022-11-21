@@ -685,9 +685,6 @@ wizard_page_t *wizard_network(const char *lang)
 
   for (idx = 0; idx < ARRAY_SIZE(props); idx++)
     w->props[idx] = props[idx];
-
-    if (!tvh_inputs.lh_first)
-    return page;
   
   for (ti = LIST_LAST(tvh_input_t, &tvh_inputs, ti_link); ti;
        ti = LIST_PREV(ti, tvh_input_t, &tvh_inputs, ti_link)) {
